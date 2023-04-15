@@ -1,11 +1,10 @@
 package gun0912.tedimagepicker.base
 
 import android.view.ViewGroup
-import androidx.databinding.ViewDataBinding
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
 
-internal abstract class BaseRecyclerViewAdapter<D, VH : BaseViewHolder<ViewDataBinding, D>>(private var headerCount: Int = 0) :
+internal abstract class BaseRecyclerViewAdapter<D, VH : BaseViewHolder<D>>(private var headerCount: Int = 0) :
     RecyclerView.Adapter<VH>() {
 
     protected val items = mutableListOf<D>()

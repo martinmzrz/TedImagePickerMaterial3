@@ -9,15 +9,19 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
-import android.view.MenuItem
 import android.view.View
+import android.view.ViewGroup
 import android.view.animation.AccelerateDecelerateInterpolator
+import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.ContextCompat
-import androidx.databinding.DataBindingUtil
+import androidx.drawerlayout.widget.DrawerLayout
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.firefly.fire_rx.subscribeOnIOAndObserveOnMain
+import com.firefly.viewutils.gone
+import com.firefly.viewutils.visible
+import com.google.android.material.appbar.MaterialToolbar
 import com.gun0912.tedonactivityresult.model.ActivityResult
 import com.tedpark.tedonactivityresult.rx2.TedRxOnActivityResult
 import gun0912.tedimagepicker.adapter.AlbumAdapter
@@ -25,33 +29,25 @@ import gun0912.tedimagepicker.adapter.GridSpacingItemDecoration
 import gun0912.tedimagepicker.adapter.MediaAdapter
 import gun0912.tedimagepicker.adapter.SelectedMediaAdapter
 import gun0912.tedimagepicker.base.BaseRecyclerViewAdapter
+import gun0912.tedimagepicker.base.FastScroller
 import gun0912.tedimagepicker.builder.TedImagePickerBaseBuilder
-import gun0912.tedimagepicker.builder.type.AlbumType
-import gun0912.tedimagepicker.builder.type.CameraMedia
-import gun0912.tedimagepicker.builder.type.MediaType
-import gun0912.tedimagepicker.builder.type.SelectType
-import gun0912.tedimagepicker.databinding.ActivityTedImagePickerBinding
-import gun0912.tedimagepicker.extenstion.close
-import gun0912.tedimagepicker.extenstion.isOpen
+import gun0912.tedimagepicker.builder.type.*
 import gun0912.tedimagepicker.extenstion.setLock
 import gun0912.tedimagepicker.extenstion.toggle
 import gun0912.tedimagepicker.model.Album
 import gun0912.tedimagepicker.model.Media
 import gun0912.tedimagepicker.util.GalleryUtil
 import gun0912.tedimagepicker.util.MediaUtil
+import gun0912.tedimagepicker.util.TextFormatUtil
 import gun0912.tedimagepicker.util.ToastUtil
-import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.Disposable
-import io.reactivex.schedulers.Schedulers
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.TimeUnit
-import kotlin.collections.ArrayList
 
 
 internal class TedImagePickerActivity : AppCompatActivity() {
 
-    private lateinit var binding: ActivityTedImagePickerBinding
     private val albumAdapter by lazy { AlbumAdapter(builder) }
     private lateinit var mediaAdapter: MediaAdapter
     private lateinit var selectedMediaAdapter: SelectedMediaAdapter
@@ -61,6 +57,28 @@ internal class TedImagePickerActivity : AppCompatActivity() {
     private lateinit var disposable: Disposable
 
     private var selectedPosition = 0
+    private var mSelectedAlbum: Album? = null
+    private var mIsAlbumOpened: Boolean = false
+
+    private lateinit var mToolbar: MaterialToolbar
+    private lateinit var mViewDoneTop: Button
+    private lateinit var mViewDoneBottom: Button
+    private lateinit var mLayoutContent: ViewGroup
+    private lateinit var mRecyclerViewMedia: RecyclerView
+    private lateinit var mDrawerLayout: DrawerLayout
+    private lateinit var mLayoutSelectedAlbumDropDown: ViewGroup
+    private lateinit var mDropdownIcon: ImageView
+    private lateinit var mRecyclerViewAlbum: RecyclerView
+    private lateinit var mRecyclerViewAlbumDropDown: RecyclerView
+    private lateinit var mRecyclerViewSelectedMedia: RecyclerView
+    private lateinit var mFastScroller: FastScroller
+    private lateinit var mViewSelectedMedia: FrameLayout
+    private lateinit var mViewSelectedAlbum: LinearLayout
+    private lateinit var mSelectedAlbumDropdownImageCount: TextView
+    private lateinit var mImageCount: TextView
+    private lateinit var mSelectedAlbumName: TextView
+    private lateinit var mSelectedAlbumDropDownAlbumName: TextView
+    private lateinit var mViewBottom: View
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -69,8 +87,34 @@ internal class TedImagePickerActivity : AppCompatActivity() {
             requestedOrientation = builder.screenOrientation
         }
         startAnimation()
-        binding = DataBindingUtil.setContentView(this, R.layout.activity_ted_image_picker)
-        binding.imageCountFormat = builder.imageCountFormat
+
+        setContentView(R.layout.activity_ted_image_picker)
+
+        mToolbar = findViewById(R.id.toolbar)
+        mViewDoneTop = findViewById(R.id.view_done_top)
+        mViewDoneBottom = findViewById(R.id.view_done_bottom)
+        mLayoutContent = findViewById(R.id.layout_content)
+        mRecyclerViewMedia = mLayoutContent.findViewById(R.id.rv_media)
+        mDrawerLayout = findViewById(R.id.drawer_layout)
+        mLayoutSelectedAlbumDropDown = findViewById(R.id.layout_selected_album_drop_down)
+        mDropdownIcon = mLayoutSelectedAlbumDropDown.findViewById(R.id.dropdown_icon)
+        mRecyclerViewAlbum = findViewById(R.id.rv_album)
+        mRecyclerViewAlbumDropDown = findViewById(R.id.rv_album_drop_down)
+        mRecyclerViewSelectedMedia = mLayoutContent.findViewById(R.id.rv_selected_media)
+        mFastScroller = mLayoutContent.findViewById(R.id.fast_scroller)
+        mViewSelectedMedia = mLayoutContent.findViewById(R.id.view_selected_media)
+        mViewSelectedAlbum = findViewById(R.id.view_selected_album)
+        mSelectedAlbumDropdownImageCount = mLayoutSelectedAlbumDropDown.findViewById(R.id.image_count)
+        mImageCount = findViewById(R.id.image_count)
+        mSelectedAlbumName = findViewById(R.id.selected_album_name)
+        mSelectedAlbumDropDownAlbumName = mLayoutSelectedAlbumDropDown.findViewById(R.id.album_name)
+        mViewBottom = findViewById(R.id.view_bottom)
+
+        mLayoutSelectedAlbumDropDown.gone()
+        mViewSelectedAlbum.gone()
+        mRecyclerViewAlbumDropDown.gone()
+        mDropdownIcon.setImageResource(R.drawable.ic_arrow_drop_down_black_24dp)
+
         setupToolbar()
         setupTitle()
         setupRecyclerView()
@@ -79,7 +123,6 @@ internal class TedImagePickerActivity : AppCompatActivity() {
         setupButton()
         setupAlbumType()
         loadMedia()
-
     }
 
     private fun startAnimation() {
@@ -89,63 +132,66 @@ internal class TedImagePickerActivity : AppCompatActivity() {
     }
 
     private fun setupToolbar() {
-        setSupportActionBar(binding.toolbar)
-        supportActionBar?.setDisplayHomeAsUpEnabled(true)
-        supportActionBar?.setHomeButtonEnabled(true)
-        supportActionBar?.setDisplayShowTitleEnabled(builder.showTitle)
-        builder.backButtonResId.let {
-            binding.toolbar.setNavigationIcon(it)
-        }
+        mToolbar.setNavigationOnClickListener { finish() }
 
-    }
-
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-
-        return when (item.itemId) {
-            android.R.id.home -> {
-                finish()
-                true
-            }
-            else -> super.onOptionsItemSelected(item)
-        }
     }
 
     private fun setupTitle() {
         val title = builder.title ?: getString(builder.titleResId)
-        setTitle(title)
+        mToolbar.title = title
     }
 
     private fun setupButton() {
-        with(binding) {
-            buttonGravity = builder.buttonGravity
-            buttonText = builder.buttonText ?: getString(builder.buttonTextResId)
-            buttonTextColor =
-                ContextCompat.getColor(this@TedImagePickerActivity, builder.buttonTextColorResId)
-            buttonBackground = builder.buttonBackgroundResId
-            buttonDrawableOnly = builder.buttonDrawableOnly
+        mViewDoneTop.text = builder.buttonText ?: getString(builder.buttonTextResId)
+        mViewDoneBottom.text = builder.buttonText ?: getString(builder.buttonTextResId)
+
+        if(builder.buttonDrawableOnly){
+            mViewDoneBottom.visible()
+            mViewDoneTop.visible()
+
+            mViewDoneTop.gone()
+            mViewDoneBottom.gone()
+        } else {
+            mViewDoneBottom.gone()
+            mViewDoneTop.gone()
+
+            mViewDoneTop.visible()
+            mViewDoneBottom.visible()
         }
 
         setupButtonVisibility()
     }
 
     private fun setupButtonVisibility() {
-        binding.showButton = when {
-            builder.selectType == SelectType.SINGLE -> false
-            else -> mediaAdapter.selectedUriList.isNotEmpty()
+        val showButton = if(builder.selectType == SelectType.SINGLE){
+            false
+        } else {
+            mediaAdapter.selectedUriList.isNotEmpty()
+        }
+
+        if(showButton && builder.buttonGravity == ButtonGravity.TOP){
+            mViewDoneTop.visible()
+        } else {
+            mViewDoneTop.gone()
+        }
+
+        if(showButton && builder.buttonGravity == ButtonGravity.BOTTOM){
+            mViewDoneBottom.visible()
+        } else {
+            mViewDoneBottom.gone()
         }
     }
 
     private fun loadMedia(isRefresh: Boolean = false) {
         disposable = GalleryUtil.getMedia(this, builder.mediaType)
-            .subscribeOn(Schedulers.io())
-            .observeOn(AndroidSchedulers.mainThread())
+            .subscribeOnIOAndObserveOnMain()
             .subscribe { albumList: List<Album> ->
                 albumAdapter.replaceAll(albumList)
                 setSelectedAlbum(selectedPosition)
                 if (!isRefresh) {
                     setSelectedUriList(builder.selectedUriList)
                 }
-                binding.layoutContent.rvMedia.visibility = View.VISIBLE
+                mRecyclerViewMedia.visible()
 
             }
     }
@@ -182,21 +228,22 @@ internal class TedImagePickerActivity : AppCompatActivity() {
             onItemClickListener = object : BaseRecyclerViewAdapter.OnItemClickListener<Album> {
                 override fun onItemClick(data: Album, itemPosition: Int, layoutPosition: Int) {
                     this@TedImagePickerActivity.setSelectedAlbum(itemPosition)
-                    binding.drawerLayout.close()
-                    binding.isAlbumOpened = false
+                    mDrawerLayout.close()
+                    mDropdownIcon.setImageResource(R.drawable.ic_arrow_drop_down_black_24dp)
+                    mRecyclerViewAlbumDropDown.gone()
                 }
             }
         }
-        binding.rvAlbum.run {
+        mRecyclerViewAlbum.run {
             adapter = albumAdapter
             addOnScrollListener(object : RecyclerView.OnScrollListener() {
                 override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
-                    binding.drawerLayout.setLock(newState == RecyclerView.SCROLL_STATE_DRAGGING)
+                    mDrawerLayout.setLock(newState == RecyclerView.SCROLL_STATE_DRAGGING)
                 }
             })
         }
 
-        binding.rvAlbumDropDown.adapter = albumAdapter
+        mRecyclerViewAlbumDropDown.adapter = albumAdapter
 
     }
 
@@ -204,7 +251,8 @@ internal class TedImagePickerActivity : AppCompatActivity() {
         mediaAdapter = MediaAdapter(this, builder).apply {
             onItemClickListener = object : BaseRecyclerViewAdapter.OnItemClickListener<Media> {
                 override fun onItemClick(data: Media, itemPosition: Int, layoutPosition: Int) {
-                    binding.isAlbumOpened = false
+                    mRecyclerViewAlbumDropDown.gone()
+                    mDropdownIcon.setImageResource(R.drawable.ic_arrow_drop_down_black_24dp)
                     this@TedImagePickerActivity.onMediaClick(data.uri)
                 }
 
@@ -214,12 +262,12 @@ internal class TedImagePickerActivity : AppCompatActivity() {
             }
 
             onMediaAddListener = {
-                binding.layoutContent.rvSelectedMedia.smoothScrollToPosition(selectedMediaAdapter.itemCount)
+                mRecyclerViewSelectedMedia.smoothScrollToPosition(selectedMediaAdapter.itemCount)
             }
 
         }
 
-        binding.layoutContent.rvMedia.run {
+        mRecyclerViewMedia.run {
             layoutManager = GridLayoutManager(this@TedImagePickerActivity, IMAGE_SPAN_COUNT)
             addItemDecoration(GridSpacingItemDecoration(IMAGE_SPAN_COUNT, 8))
             itemAnimator = null
@@ -238,25 +286,29 @@ internal class TedImagePickerActivity : AppCompatActivity() {
                             builder.scrollIndicatorDateFormat,
                             Locale.getDefault()
                         ).format(Date(TimeUnit.SECONDS.toMillis(media.dateAddedSecond)))
-                        binding.layoutContent.fastScroller.setBubbleText(dateString)
+                        mFastScroller.setBubbleText(dateString)
                     }
                 }
             })
         }
 
-        binding.layoutContent.fastScroller.recyclerView = binding.layoutContent.rvMedia
+        mFastScroller.recyclerView = mRecyclerViewMedia
 
     }
 
     private fun setupSelectedMediaRecyclerView() {
-        binding.layoutContent.selectType = builder.selectType
+        if(builder.selectType == SelectType.MULTI){
+            mRecyclerViewSelectedMedia.visible()
+        } else {
+            mRecyclerViewSelectedMedia.gone()
+        }
 
         selectedMediaAdapter = SelectedMediaAdapter().apply {
             onClearClickListener = { uri ->
                 onMultiMediaClick(uri)
             }
         }
-        binding.layoutContent.rvSelectedMedia.run {
+        mRecyclerViewSelectedMedia.run {
             layoutManager = LinearLayoutManager(
                 this@TedImagePickerActivity,
                 LinearLayoutManager.HORIZONTAL,
@@ -265,7 +317,6 @@ internal class TedImagePickerActivity : AppCompatActivity() {
             adapter = selectedMediaAdapter
 
         }
-
     }
 
     @SuppressLint("CheckResult")
@@ -285,8 +336,7 @@ internal class TedImagePickerActivity : AppCompatActivity() {
             .subscribe { activityResult: ActivityResult ->
                 if (activityResult.resultCode == Activity.RESULT_OK) {
                     MediaUtil.scanMedia(this, uri)
-                        .subscribeOn(Schedulers.io())
-                        .observeOn(AndroidSchedulers.mainThread())
+                        .subscribeOnIOAndObserveOnMain()
                         .subscribe {
                             loadMedia(true)
                             onMediaClick(uri)
@@ -305,13 +355,19 @@ internal class TedImagePickerActivity : AppCompatActivity() {
 
     private fun onMultiMediaClick(uri: Uri) {
         mediaAdapter.toggleMediaSelect(uri)
-        binding.layoutContent.items = mediaAdapter.selectedUriList
+
+        (mRecyclerViewSelectedMedia.adapter as? BaseRecyclerViewAdapter<Uri, *>)?.replaceAll(
+            mediaAdapter.selectedUriList,
+            true
+        )
+
+        mRecyclerViewSelectedMedia
         updateSelectedMediaView()
         setupButtonVisibility()
     }
 
     private fun setupSelectedMediaView() {
-        binding.layoutContent.viewSelectedMedia.run {
+        mViewSelectedMedia.run {
             if (mediaAdapter.selectedUriList.size > 0) {
                 layoutParams.height =
                     resources.getDimensionPixelSize(R.dimen.ted_image_picker_selected_view_height)
@@ -323,15 +379,15 @@ internal class TedImagePickerActivity : AppCompatActivity() {
     }
 
     private fun updateSelectedMediaView() {
-        binding.layoutContent.viewSelectedMedia.post {
-            binding.layoutContent.viewSelectedMedia.run {
+        mViewSelectedMedia.post {
+            mViewSelectedMedia.run {
                 if (mediaAdapter.selectedUriList.size > 0) {
                     slideView(
                         this,
                         layoutParams.height,
                         resources.getDimensionPixelSize(R.dimen.ted_image_picker_selected_view_height)
                     )
-                } else if (mediaAdapter.selectedUriList.size == 0) {
+                } else {
                     slideView(this, layoutParams.height, 0)
                 }
             }
@@ -395,41 +451,59 @@ internal class TedImagePickerActivity : AppCompatActivity() {
 
     private fun setSelectedAlbum(selectedPosition: Int) {
         val album = albumAdapter.getItem(selectedPosition)
-        if (this.selectedPosition == selectedPosition && binding.selectedAlbum == album) {
+        if (this.selectedPosition == selectedPosition && mSelectedAlbum == album) {
             return
         }
 
-        binding.selectedAlbum = album
+        mSelectedAlbum = album
+
+        mLayoutSelectedAlbumDropDown.visible()
+        mViewSelectedAlbum.visible()
+        mSelectedAlbumName.text = mSelectedAlbum?.name
+        mSelectedAlbumDropDownAlbumName.text = mSelectedAlbum?.name
+
+        mSelectedAlbumDropdownImageCount.text = TextFormatUtil.getMediaCountText(builder.imageCountFormat, mSelectedAlbum?.mediaUris?.size ?: 0)
+        mImageCount.text = TextFormatUtil.getMediaCountText(builder.imageCountFormat, mSelectedAlbum?.mediaUris?.size ?: 0)
+
         this.selectedPosition = selectedPosition
         albumAdapter.setSelectedAlbum(album)
         mediaAdapter.replaceAll(album.mediaUris)
-        binding.layoutContent.rvMedia.layoutManager?.scrollToPosition(0)
+        mRecyclerViewMedia.layoutManager?.scrollToPosition(0)
     }
 
     private fun setupListener() {
-        binding.viewSelectedAlbum.setOnClickListener {
-            binding.drawerLayout.toggle()
+        mViewSelectedAlbum.setOnClickListener {
+            mDrawerLayout.toggle()
         }
 
-        binding.viewDoneTop.root.setOnClickListener {
+        mViewDoneTop.setOnClickListener {
             onMultiMediaDone()
         }
-        binding.viewDoneBottom.root.setOnClickListener {
+        mViewDoneBottom.setOnClickListener {
             onMultiMediaDone()
         }
 
-        binding.viewSelectedAlbumDropDown.setOnClickListener {
-            binding.isAlbumOpened = !binding.isAlbumOpened
+        mLayoutSelectedAlbumDropDown.setOnClickListener {
+
+            mIsAlbumOpened = !mIsAlbumOpened
+
+            if(mIsAlbumOpened){
+                mRecyclerViewAlbumDropDown.visible()
+                mDropdownIcon.setImageResource(R.drawable.ic_arrow_drop_up_black_24dp)
+            } else {
+                mRecyclerViewAlbumDropDown.gone()
+                mDropdownIcon.setImageResource(R.drawable.ic_arrow_drop_down_black_24dp)
+            }
         }
 
     }
 
     private fun setupAlbumType() {
         if (builder.albumType == AlbumType.DRAWER) {
-            binding.viewSelectedAlbumDropDown.visibility = View.GONE
+            mLayoutSelectedAlbumDropDown.gone()
         } else {
-            binding.viewBottom.visibility = View.GONE
-            binding.drawerLayout.setLock(true)
+            mViewBottom.gone()
+            mDrawerLayout.setLock(true)
         }
     }
 
@@ -445,17 +519,17 @@ internal class TedImagePickerActivity : AppCompatActivity() {
 
     private fun isAlbumOpened(): Boolean =
         if (builder.albumType == AlbumType.DRAWER) {
-            binding.drawerLayout.isOpen()
+            mDrawerLayout.isOpen
         } else {
-            binding.isAlbumOpened
+            mIsAlbumOpened
         }
 
     private fun closeAlbum() {
 
         if (builder.albumType == AlbumType.DRAWER) {
-            binding.drawerLayout.close()
+            mDrawerLayout.close()
         } else {
-            binding.isAlbumOpened = false
+            mIsAlbumOpened = false
         }
     }
 
@@ -480,10 +554,20 @@ internal class TedImagePickerActivity : AppCompatActivity() {
                 }
 
         internal fun getSelectedUri(data: Intent): Uri? =
-            data.getParcelableExtra(EXTRA_SELECTED_URI)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                data.getParcelableExtra(EXTRA_SELECTED_URI, Uri::class.java)
+            } else {
+                @Suppress("DEPRECATION")
+                data.getParcelableExtra(EXTRA_SELECTED_URI)
+            }
 
         internal fun getSelectedUriList(data: Intent): List<Uri>? =
-            data.getParcelableArrayListExtra(EXTRA_SELECTED_URI_LIST)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                data.getParcelableArrayListExtra(EXTRA_SELECTED_URI_LIST, Uri::class.java)
+            } else {
+                @Suppress("DEPRECATION")
+                data.getParcelableArrayListExtra(EXTRA_SELECTED_URI_LIST)
+            }
     }
 
 }

@@ -26,7 +26,7 @@
 
         <activity
             android:name=".zoom.TedImageZoomActivity"
-            android:theme="@style/TedImagePickerTheme.Zoom" />
+            android:theme="@style/TedImagePickerThemeZoom" />
 
         <provider
             android:name=".util.TedImagePickerContentProvider"

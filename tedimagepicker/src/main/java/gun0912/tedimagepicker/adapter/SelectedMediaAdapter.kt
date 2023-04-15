@@ -2,15 +2,16 @@ package gun0912.tedimagepicker.adapter
 
 import android.app.Activity
 import android.net.Uri
-import android.util.Log
+import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
+import androidx.appcompat.widget.AppCompatImageView
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.RecyclerView.NO_POSITION
-import com.bumptech.glide.Glide
+import com.facebook.drawee.view.SimpleDraweeView
 import gun0912.tedimagepicker.R
 import gun0912.tedimagepicker.base.BaseRecyclerViewAdapter
 import gun0912.tedimagepicker.base.BaseViewHolder
-import gun0912.tedimagepicker.databinding.ItemSelectedMediaBinding
 
 internal class SelectedMediaAdapter :
     BaseRecyclerViewAdapter<Uri, SelectedMediaAdapter.MediaViewHolder>() {
@@ -18,7 +19,10 @@ internal class SelectedMediaAdapter :
     var onClearClickListener: ((Uri) -> Unit)? = null
     private var layoutManager: RecyclerView.LayoutManager? = null
 
-    override fun getViewHolder(parent: ViewGroup, viewType: ViewType) = MediaViewHolder(parent)
+    override fun getViewHolder(parent: ViewGroup, viewType: ViewType) : MediaViewHolder {
+        val view = LayoutInflater.from(parent.context).inflate(R.layout.item_selected_media, parent, false)
+        return MediaViewHolder(view)
+    }
 
     override fun onAttachedToRecyclerView(recyclerView: RecyclerView) {
         super.onAttachedToRecyclerView(recyclerView)
@@ -26,11 +30,12 @@ internal class SelectedMediaAdapter :
     }
 
 
-    inner class MediaViewHolder(parent: ViewGroup) :
-        BaseViewHolder<ItemSelectedMediaBinding, Uri>(parent, R.layout.item_selected_media) {
+    inner class MediaViewHolder(view:View) : BaseViewHolder<Uri>(view) {
+        private val ivImage = view.findViewById<SimpleDraweeView>(R.id.iv_image)
+        private val ivClear = view.findViewById<AppCompatImageView>(R.id.iv_clear)
 
         init {
-            binding.ivClear.setOnClickListener {
+            ivClear.setOnClickListener {
                 val item = getItem(adapterPosition.takeIf { it != NO_POSITION }
                     ?: return@setOnClickListener)
                 onClearClickListener?.invoke(item)
@@ -38,14 +43,14 @@ internal class SelectedMediaAdapter :
         }
 
         override fun bind(data: Uri) {
-            binding.uri = data
+            ivImage.setImageURI(data.toString())
         }
 
         override fun recycled() {
             if ((itemView.context as? Activity)?.isDestroyed == true) {
                 return
             }
-            Glide.with(itemView).clear(binding.ivImage)
+            ivImage.setImageURI("")
         }
     }
 

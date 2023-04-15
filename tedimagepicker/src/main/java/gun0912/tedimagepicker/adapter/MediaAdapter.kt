@@ -2,27 +2,27 @@ package gun0912.tedimagepicker.adapter
 
 import android.app.Activity
 import android.net.Uri
+import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
+import android.widget.Button
+import android.widget.FrameLayout
+import android.widget.TextView
+import androidx.appcompat.widget.AppCompatImageView
 import androidx.core.app.ActivityOptionsCompat
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView.NO_POSITION
-import com.bumptech.glide.Glide
+import com.facebook.drawee.view.SimpleDraweeView
+import com.firefly.viewutils.gone
+import com.firefly.viewutils.visible
 import gun0912.tedimagepicker.R
 import gun0912.tedimagepicker.base.BaseSimpleHeaderAdapter
 import gun0912.tedimagepicker.base.BaseViewHolder
 import gun0912.tedimagepicker.builder.TedImagePickerBaseBuilder
-import gun0912.tedimagepicker.builder.type.MediaType
-import gun0912.tedimagepicker.databinding.ItemGalleryCameraBinding
-import gun0912.tedimagepicker.databinding.ItemGalleryMediaBinding
+import gun0912.tedimagepicker.builder.type.SelectType
 import gun0912.tedimagepicker.model.Media
 import gun0912.tedimagepicker.util.ToastUtil
 import gun0912.tedimagepicker.zoom.TedImageZoomActivity
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
-import java.util.TimeZone
-import java.util.concurrent.ExecutorService
-import java.util.concurrent.Executors
-import java.util.concurrent.TimeUnit
 
 internal class MediaAdapter(
     private val activity: Activity,
@@ -32,10 +32,14 @@ internal class MediaAdapter(
     internal val selectedUriList: MutableList<Uri> = mutableListOf()
     var onMediaAddListener: (() -> Unit)? = null
 
-    private val executorService: ExecutorService = Executors.newFixedThreadPool(4)
-
-    override fun getHeaderViewHolder(parent: ViewGroup) = CameraViewHolder(parent)
-    override fun getItemViewHolder(parent: ViewGroup) = ImageViewHolder(parent)
+    override fun getHeaderViewHolder(parent: ViewGroup): HeaderViewHolder {
+        val view = LayoutInflater.from(parent.context).inflate(R.layout.item_gallery_camera, parent, false)
+        return CameraViewHolder(view)
+    }
+    override fun getItemViewHolder(parent: ViewGroup) : ImageViewHolder{
+        val view = LayoutInflater.from(parent.context).inflate(R.layout.item_gallery_media, parent, false)
+        return ImageViewHolder(view)
+    }
 
     fun toggleMediaSelect(uri: Uri) {
         if (selectedUriList.contains(uri)) {
@@ -44,7 +48,6 @@ internal class MediaAdapter(
             addMedia(uri)
         }
     }
-
 
     private fun addMedia(uri: Uri) {
         if (selectedUriList.size == builder.maxCount) {
@@ -76,36 +79,60 @@ internal class MediaAdapter(
         }
     }
 
-    inner class ImageViewHolder(parent: ViewGroup) :
-        BaseViewHolder<ItemGalleryMediaBinding, Media>(parent, R.layout.item_gallery_media) {
+    inner class ImageViewHolder(view: View) : BaseViewHolder<Media>(view) {
+        private val viewZoomOut = view.findViewById<Button>(R.id.view_zoom_out)
+        private val multiSelectionFrame = view.findViewById<FrameLayout>(R.id.multi_selection_frame)
+        private val selectedNumber = view.findViewById<TextView>(R.id.selected_number)
+        private val duration = view.findViewById<TextView>(R.id.tv_duration)
+        private val ivImage = view.findViewById<SimpleDraweeView>(R.id.iv_image)
+
 
         init {
-            binding.run {
-                selectType = builder.selectType
-                viewZoomOut.setOnClickListener {
-                    val item = getItem(adapterPosition.takeIf { it != NO_POSITION }
-                        ?: return@setOnClickListener)
-                    startZoomActivity(item)
-                }
-                showZoom = false
+            viewZoomOut.setOnClickListener {
+                val item = getItem(adapterPosition.takeIf { it != NO_POSITION }
+                    ?: return@setOnClickListener)
+                startZoomActivity(item)
             }
 
+            if(builder.selectType == SelectType.MULTI){
+                multiSelectionFrame.visible()
+            } else {
+                multiSelectionFrame.gone()
+            }
+
+            viewZoomOut.gone()
         }
 
         override fun bind(data: Media) {
-            binding.run {
-                media = data
-                isSelected = selectedUriList.contains(data.uri)
-                if (isSelected) {
-                    selectedNumber = selectedUriList.indexOf(data.uri) + 1
-                }
 
-                showZoom = builder.showZoomIndicator && media is Media.Image
-                showDuration = builder.showVideoDuration && media is Media.Video
-                if (data is Media.Video) {
-                    binding.duration = data.durationText
-                }
+            ivImage.setImageURI(data.uri.toString())
 
+            if(selectedUriList.contains(data.uri)){
+                viewZoomOut.isClickable = false
+                selectedNumber.text = (selectedUriList.indexOf(data.uri) + 1).toString()
+                multiSelectionFrame.setBackgroundColor(ContextCompat.getColor(itemView.context, R.color.ted_image_picker_selected_foreground))
+                selectedNumber.setBackgroundResource(R.drawable.bg_multi_image_selected)
+            } else {
+                viewZoomOut.isClickable = true
+                selectedNumber.text = ""
+                multiSelectionFrame.background = null
+                selectedNumber.setBackgroundResource(R.drawable.bg_multi_image_unselected)
+            }
+
+            if(builder.showZoomIndicator && data is Media.Image){
+                viewZoomOut.visible()
+            } else {
+                viewZoomOut.gone()
+            }
+
+            if(builder.showVideoDuration && data is Media.Video){
+                duration.visible()
+            } else {
+                duration.gone()
+            }
+
+            if(data is Media.Video){
+                duration.text = data.durationText
             }
         }
 
@@ -113,13 +140,14 @@ internal class MediaAdapter(
             if (activity.isDestroyed) {
                 return
             }
-            Glide.with(activity).clear(binding.ivImage)
+
+            ivImage.setImageURI("")
         }
 
         private fun startZoomActivity(media: Media) {
             val options = ActivityOptionsCompat.makeSceneTransitionAnimation(
                 activity,
-                binding.ivImage,
+                ivImage,
                 media.uri.toString()
             ).toBundle()
 
@@ -128,12 +156,11 @@ internal class MediaAdapter(
         }
     }
 
-    inner class CameraViewHolder(parent: ViewGroup) : HeaderViewHolder<ItemGalleryCameraBinding>(
-        parent, R.layout.item_gallery_camera
-    ) {
+    inner class CameraViewHolder(view: View) : HeaderViewHolder(view) {
+        private val ivImage = view.findViewById<AppCompatImageView>(R.id.iv_image)
 
         init {
-            binding.ivImage.setImageResource(builder.cameraTileImageResId)
+            ivImage.setImageResource(builder.cameraTileImageResId)
             itemView.setBackgroundResource(builder.cameraTileBackgroundResId)
         }
 

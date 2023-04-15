@@ -7,17 +7,17 @@ import android.animation.ObjectAnimator
 import android.content.Context
 import android.graphics.Rect
 import android.util.AttributeSet
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
+import android.widget.FrameLayout
 import android.widget.LinearLayout
+import android.widget.TextView
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import gun0912.tedimagepicker.databinding.LayoutScrollerBinding
-import io.reactivex.android.schedulers.AndroidSchedulers
+import com.firefly.fire_rx.subscribeOnIOAndObserveOnMain
+import gun0912.tedimagepicker.R
 import io.reactivex.disposables.Disposable
-import io.reactivex.schedulers.Schedulers
 import io.reactivex.subjects.PublishSubject
 import java.util.concurrent.TimeUnit
 import kotlin.math.roundToInt
@@ -29,7 +29,10 @@ class FastScroller @JvmOverloads constructor(
     defStyleAttr: Int = 0
 ) : LinearLayout(context, attrs, defStyleAttr) {
 
-    private lateinit var binding: LayoutScrollerBinding
+
+    private lateinit var mViewScroller: FrameLayout
+    private lateinit var mViewBubble: FrameLayout
+    private lateinit var mTextViewBubble: TextView
 
     var recyclerView: RecyclerView? = null
         set(value) {
@@ -53,7 +56,10 @@ class FastScroller @JvmOverloads constructor(
     private fun init() {
         orientation = HORIZONTAL
         clipChildren = false
-        binding = LayoutScrollerBinding.inflate(LayoutInflater.from(context), this, true)
+        val view = LayoutInflater.from(context).inflate(R.layout.layout_scroller, this, true)
+        mViewScroller = view.findViewById(R.id.view_scroller)
+        mViewBubble = view.findViewById(R.id.view_bubble)
+        mTextViewBubble = view.findViewById(R.id.tv_bubble)
         setupHideScrollerSubscribe()
 
     }
@@ -62,7 +68,7 @@ class FastScroller @JvmOverloads constructor(
         return when (event.action) {
             MotionEvent.ACTION_DOWN -> {
                 if (isTouchScroller(event)) {
-                    binding.viewScroller.isSelected = true
+                    mViewScroller.isSelected = true
                     showBubble()
                     true
                 } else {
@@ -70,7 +76,7 @@ class FastScroller @JvmOverloads constructor(
                 }
             }
             MotionEvent.ACTION_MOVE -> {
-                if (binding.viewScroller.isSelected) {
+                if (mViewScroller.isSelected) {
                     showScroller(event)
                     hideScrollerSubject.onNext(true)
                     true
@@ -80,7 +86,7 @@ class FastScroller @JvmOverloads constructor(
             }
 
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                binding.viewScroller.isSelected = false
+                mViewScroller.isSelected = false
                 hideBubble()
                 return false
             }
@@ -91,7 +97,7 @@ class FastScroller @JvmOverloads constructor(
 
     private fun isTouchScroller(event: MotionEvent): Boolean {
         val scrollerRect = Rect().apply {
-            binding.viewScroller.getHitRect(this)
+            mViewScroller.getHitRect(this)
         }
         return scrollerRect.contains(event.x.toInt(), event.y.toInt())
     }
@@ -104,9 +110,8 @@ class FastScroller @JvmOverloads constructor(
 
     private fun setupHideScrollerSubscribe() {
         hideDisposable = hideScrollerSubject.debounce(HIDE_DELAY_SECOND, TimeUnit.SECONDS)
-            .subscribeOn(Schedulers.io())
-            .observeOn(AndroidSchedulers.mainThread())
-            .filter { !binding.viewScroller.isSelected }
+            .subscribeOnIOAndObserveOnMain()
+            .filter { !mViewScroller.isSelected }
             .subscribe({
                 hideAnimateHandle()
             }, { throwable -> throwable.printStackTrace() })
@@ -122,22 +127,22 @@ class FastScroller @JvmOverloads constructor(
 
 
     private fun setScrollerPosition(positionY: Float) {
-        binding.viewScroller.y = getValueInRange(
-            positionY - (binding.viewScroller.height / 2),
-            viewHeight - binding.viewScroller.height
+        mViewScroller.y = getValueInRange(
+            positionY - (mViewScroller.height / 2),
+            viewHeight - mViewScroller.height
         )
 
-        binding.viewBubble.y = getValueInRange(
-            positionY - (binding.viewBubble.height / 2),
-            viewHeight - binding.viewBubble.height
+        mViewBubble.y = getValueInRange(
+            positionY - (mViewBubble.height / 2),
+            viewHeight - mViewBubble.height
         )
     }
 
     private fun setRecyclerViewPosition(positionY: Float) {
         recyclerView?.adapter?.run {
             val proportion: Float = when {
-                binding.viewScroller.y == 0f -> 0f
-                binding.viewScroller.y + binding.viewScroller.height >= viewHeight - SCROLLER_MAX_POSITION_GAP -> 1f
+                mViewScroller.y == 0f -> 0f
+                mViewScroller.y + mViewScroller.height >= viewHeight - SCROLLER_MAX_POSITION_GAP -> 1f
                 else -> positionY / viewHeight
             }
             val targetPos: Float = getValueInRange(proportion * itemCount, itemCount - 1)
@@ -153,15 +158,15 @@ class FastScroller @JvmOverloads constructor(
     private fun getValueInRange(value: Float, max: Int): Float = value.coerceIn(0f, max.toFloat())
 
     private fun showAnimateHandle() {
-        if (binding.viewScroller.visibility == View.VISIBLE) {
+        if (mViewScroller.visibility == View.VISIBLE) {
             return
         }
-        binding.viewScroller.visibility = View.VISIBLE
+        mViewScroller.visibility = View.VISIBLE
 
         ObjectAnimator.ofFloat(
-            binding.viewScroller,
+            mViewScroller,
             TRANSLATION_X,
-            binding.viewScroller.width.toFloat(),
+            mViewScroller.width.toFloat(),
             0f
         ).apply {
             duration = ANIMATION_TIME_HANDLE
@@ -170,27 +175,27 @@ class FastScroller @JvmOverloads constructor(
 
 
     private fun hideAnimateHandle() {
-        if (binding.viewScroller.visibility == View.INVISIBLE) {
+        if (mViewScroller.visibility == View.INVISIBLE) {
             return
         }
 
         ObjectAnimator.ofFloat(
-            binding.viewScroller,
+            mViewScroller,
             TRANSLATION_X,
             0f,
-            binding.viewScroller.width.toFloat()
+            mViewScroller.width.toFloat()
         ).apply {
 
             addListener(object : AnimatorListenerAdapter() {
                 override fun onAnimationEnd(animation: Animator) {
                     super.onAnimationEnd(animation)
-                    binding.viewScroller.visibility = View.INVISIBLE
+                    mViewScroller.visibility = View.INVISIBLE
                     currentAnimator = null
                 }
 
                 override fun onAnimationCancel(animation: Animator) {
                     super.onAnimationCancel(animation)
-                    binding.viewScroller.visibility = View.INVISIBLE
+                    mViewScroller.visibility = View.INVISIBLE
                     currentAnimator = null
                 }
             })
@@ -202,14 +207,14 @@ class FastScroller @JvmOverloads constructor(
 
 
     private fun showBubble() {
-        if (binding.viewBubble.visibility == View.VISIBLE) {
+        if (mViewBubble.visibility == View.VISIBLE) {
             return
         }
-        binding.viewBubble.visibility = View.VISIBLE
+        mViewBubble.visibility = View.VISIBLE
         ObjectAnimator.ofFloat(
-            binding.viewBubble,
+            mViewBubble,
             TRANSLATION_X,
-            binding.viewBubble.width.toFloat(),
+            mViewBubble.width.toFloat(),
             0f
         ).apply {
             duration = ANIMATION_TIME_BUBBLE
@@ -217,26 +222,26 @@ class FastScroller @JvmOverloads constructor(
     }
 
     private fun hideBubble() {
-        if (binding.viewBubble.visibility == View.INVISIBLE) {
+        if (mViewBubble.visibility == View.INVISIBLE) {
             return
         }
         ObjectAnimator.ofFloat(
-            binding.viewBubble,
+            mViewBubble,
             TRANSLATION_X,
             0f,
-            binding.viewBubble.width.toFloat()
+            mViewBubble.width.toFloat()
         ).apply {
 
             addListener(object : AnimatorListenerAdapter() {
                 override fun onAnimationEnd(animation: Animator) {
                     super.onAnimationEnd(animation)
-                    binding.viewBubble.visibility = View.INVISIBLE
+                    mViewBubble.visibility = View.INVISIBLE
 
                 }
 
                 override fun onAnimationCancel(animation: Animator) {
                     super.onAnimationCancel(animation)
-                    binding.viewBubble.visibility = View.INVISIBLE
+                    mViewBubble.visibility = View.INVISIBLE
                 }
             })
             duration = ANIMATION_TIME_BUBBLE
@@ -256,7 +261,7 @@ class FastScroller @JvmOverloads constructor(
             }
 
             (rv.layoutManager as? LinearLayoutManager)?.run {
-                if (binding.viewScroller.visibility == View.INVISIBLE) {
+                if (mViewScroller.visibility == View.INVISIBLE) {
                     showAnimateHandle()
                 }
 
@@ -269,7 +274,7 @@ class FastScroller @JvmOverloads constructor(
 
 
     private fun updateBubbleAndHandlePosition() {
-        if (binding.viewScroller.isSelected) {
+        if (mViewScroller.isSelected) {
             return
         }
         recyclerView?.let {
@@ -283,7 +288,7 @@ class FastScroller @JvmOverloads constructor(
     }
 
     fun setBubbleText(text: String) {
-        binding.tvBubble.text = text
+        mTextViewBubble.text = text
     }
 
     companion object {
