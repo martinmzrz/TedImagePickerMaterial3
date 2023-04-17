@@ -2,6 +2,7 @@ apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-kapt'
 apply plugin: 'kotlin-parcelize'
+apply plugin: 'maven-publish'
 
 android {
     compileSdkVersion versions.compileSdkVersion
@@ -43,4 +44,16 @@ dependencies {
     implementation 'me.relex:photodraweeview:2.1.0'
 }
 
-apply plugin: "com.vanniktech.maven.publish"
+publishing {
+    publications {
+        release(MavenPublication) {
+            groupId = 'io.github.ParkSangGwon'
+            artifactId = 'tedimagepicker-material3'
+            version = '0.0.2'
+
+            afterEvaluate {
+                from components.release
+            }
+        }
+    }
+}
