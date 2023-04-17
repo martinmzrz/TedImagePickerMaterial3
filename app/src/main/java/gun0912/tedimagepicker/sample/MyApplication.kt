@@ -1,15 +1,18 @@
 package gun0912.tedimagepicker.sample
 
 
-import androidx.multidex.MultiDexApplication
+import android.app.Application
 import com.facebook.drawee.backends.pipeline.Fresco
+import com.google.android.material.color.DynamicColors
 
-class MyApplication : MultiDexApplication() {
+class MyApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
 
         Fresco.initialize(this)
+
+        DynamicColors.applyToActivitiesIfAvailable(this)
     }
 
 }
