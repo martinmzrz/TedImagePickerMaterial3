@@ -21,6 +21,14 @@ android {
         }
     }
 
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+    kotlinOptions {
+        jvmTarget = '1.8'
+    }
+
 }
 
 dependencies {
@@ -49,7 +57,7 @@ publishing {
         release(MavenPublication) {
             groupId = 'io.github.ParkSangGwon'
             artifactId = 'tedimagepicker-material3'
-            version = '0.0.2'
+            version = '0.0.3'
 
             afterEvaluate {
                 from components.release

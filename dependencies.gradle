@@ -4,6 +4,6 @@ ext {
             'compileSdkVersion': 33,
             'targetSdkVersion' : 33,
             'gradle'           : '7.4.2',
-            'kotlin'           : '1.7.0',
+            'kotlin'           : '1.8.0',
     ]
 }
