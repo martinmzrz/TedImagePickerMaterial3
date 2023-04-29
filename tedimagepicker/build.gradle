@@ -54,7 +54,7 @@ publishing {
         release(MavenPublication) {
             groupId = 'io.github.ParkSangGwon'
             artifactId = 'tedimagepicker-material3'
-            version = '0.0.6'
+            version = '0.0.7'
 
             afterEvaluate {
                 from components.release
