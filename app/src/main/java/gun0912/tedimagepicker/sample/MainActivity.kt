@@ -10,9 +10,9 @@ import android.widget.FrameLayout
 import android.widget.LinearLayout
 import androidx.appcompat.app.AppCompatActivity
 import com.facebook.drawee.view.SimpleDraweeView
+import com.firefly.fire_rx.FireDisposable.Companion.defaultSubscribe
 import com.firefly.fire_rx.FireRx
 import com.firefly.fire_rx.FireSingle.Companion.onSuccess
-import com.firefly.fire_rx.defaultSubscribe
 import gun0912.tedimagepicker.builder.TedImagePicker
 import gun0912.tedimagepicker.builder.TedRxImagePicker
 
