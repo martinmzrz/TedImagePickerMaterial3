@@ -18,7 +18,8 @@ import androidx.drawerlayout.widget.DrawerLayout
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.firefly.fire_rx.subscribeOnIOAndObserveOnMain
+import com.firefly.fire_rx.FireCompletable.Companion.subscribeOnIOAndObserveOnMain
+import com.firefly.fire_rx.FireSingle.Companion.subscribeOnIOAndObserveOnMain
 import com.firefly.viewutils.gone
 import com.firefly.viewutils.visible
 import com.google.android.material.appbar.MaterialToolbar

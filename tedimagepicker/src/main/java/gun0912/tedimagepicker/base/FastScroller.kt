@@ -15,7 +15,7 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.firefly.fire_rx.subscribeOnIOAndObserveOnMain
+import com.firefly.fire_rx.FireObservable.Companion.subscribeOnIOAndObserveOnMain
 import gun0912.tedimagepicker.R
 import io.reactivex.disposables.Disposable
 import io.reactivex.subjects.PublishSubject
