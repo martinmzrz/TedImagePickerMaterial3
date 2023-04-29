@@ -4,7 +4,7 @@ Modification of the library "TedImagePicker" compatible with Material3 and Fresc
 
 |       Image Select       |         Select Album         |
 |:------------------------:|:----------------------------:|
-| ![](art/material3-multi) | ![](art/material3-album.png) |
+| ![](art/material3-multi.png) | ![](art/material3-album.png) |
 
 </br></br>
 
