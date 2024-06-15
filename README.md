@@ -1,4 +1,4 @@
-# TedImagePicker Material 3 & Fresco [![](https://jitpack.io/v/martinmzrz/TedImagePickerMaterial3.svg)](https://jitpack.io/#martinmzrz/TedImagePickerMaterial3)
+# TedImagePicker Material 3 [![](https://jitpack.io/v/martinmzrz/TedImagePickerMaterial3.svg)](https://jitpack.io/#martinmzrz/TedImagePickerMaterial3)
 
 Modification of the library "TedImagePicker" compatible with Material3 and Fresco. The use is similar, the changes are only in view
 
@@ -26,16 +26,4 @@ dependencies {
 }
 ```
 
-Don't forget to initialize the Fresco library
-```kotlin
-class MyApplication : Application() {
-
-  override fun onCreate() {
-    super.onCreate()
-
-    Fresco.initialize(this)
-    ...
-  }
-
-}
 ```
