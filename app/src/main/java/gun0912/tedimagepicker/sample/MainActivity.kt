@@ -9,7 +9,8 @@ import android.widget.Button
 import android.widget.FrameLayout
 import android.widget.LinearLayout
 import androidx.appcompat.app.AppCompatActivity
-import com.facebook.drawee.view.SimpleDraweeView
+import androidx.appcompat.widget.AppCompatImageView
+import com.bumptech.glide.Glide
 import com.firefly.fire_rx.FireDisposable.Companion.defaultSubscribe
 import com.firefly.fire_rx.FireRx
 import com.firefly.fire_rx.FireSingle.Companion.onSuccess
@@ -28,7 +29,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnRxSingle: Button
     private lateinit var btnRxMulti: Button
     private lateinit var btnRxMultiDropDown: Button
-    private lateinit var ivImage: SimpleDraweeView
+    private lateinit var ivImage: AppCompatImageView
     private lateinit var containerSelectedPhotos: LinearLayout
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -105,7 +106,10 @@ class MainActivity : AppCompatActivity() {
     private fun showSingleImage(uri: Uri) {
         ivImage.visibility = View.VISIBLE
         containerSelectedPhotos.visibility = View.GONE
-        ivImage.setImageURI(uri.toString())
+
+        Glide.with(this)
+            .load(uri)
+            .into(ivImage)
     }
 
 
@@ -121,8 +125,12 @@ class MainActivity : AppCompatActivity() {
             TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 100f, resources.displayMetrics)
                 .toInt()
         uriList.forEach {
-            val itemImage = layoutInflater.inflate(R.layout.item_image, null, false) as SimpleDraweeView
-            itemImage.setImageURI(it.toString())
+            val itemImage = layoutInflater.inflate(R.layout.item_image, null, false) as AppCompatImageView
+
+            Glide.with(this)
+                .load(it)
+                .into(itemImage)
+
             itemImage.layoutParams = FrameLayout.LayoutParams(viewSize, viewSize)
             containerSelectedPhotos.addView(itemImage)
         }

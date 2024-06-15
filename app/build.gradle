@@ -3,12 +3,12 @@ apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-kapt'
 
 android {
-    compileSdkVersion 33
+    compileSdk 34
 
     defaultConfig {
         applicationId "gun0912.tedimagepicker.sample"
         minSdkVersion 21
-        targetSdkVersion 33
+        targetSdkVersion 34
         versionCode 1
         versionName "1.0.0"
     }
@@ -21,13 +21,14 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+    kotlinOptions {
+        jvmTarget = '17'
     }
 
-    kotlinOptions {
-        jvmTarget = '1.8'
-    }
+    namespace 'gun0912.tedimagepicker.sample'
 }
 
 dependencies {
@@ -35,19 +36,15 @@ dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
 
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
-    implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation 'androidx.appcompat:appcompat:1.7.0'
     implementation 'com.android.support:multidex:1.0.3'
-    implementation 'com.google.android.material:material:1.8.0'
+    implementation 'com.google.android.material:material:1.12.0'
+    implementation 'com.github.bumptech.glide:glide:4.16.0'
 
     debugImplementation 'com.squareup.leakcanary:leakcanary-android:2.9.1'
 
-    //Fresco
-    implementation 'com.facebook.fresco:fresco:2.6.0'
-
-    implementation 'com.github.martinmzrz:fire-rx:0.0.6'
+    implementation 'com.github.martinmzrz:fire-rx:1.0'
     implementation 'io.reactivex.rxjava2:rxjava:2.2.19'
-
-    implementation 'com.github.martinmzrz:fire-rx:0.0.6'
 
 
 }

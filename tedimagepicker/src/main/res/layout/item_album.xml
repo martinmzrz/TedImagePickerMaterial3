@@ -21,11 +21,11 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent">
 
-            <com.facebook.drawee.view.SimpleDraweeView
+            <androidx.appcompat.widget.AppCompatImageView
                 android:id="@+id/iv_image"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                app:actualImageScaleType="centerCrop"/>
+                android:scaleType="centerCrop"/>
 
             <androidx.appcompat.widget.AppCompatImageView
                 android:id="@+id/selected_foreground"

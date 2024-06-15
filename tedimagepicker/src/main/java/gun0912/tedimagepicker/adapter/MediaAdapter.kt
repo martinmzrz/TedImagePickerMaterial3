@@ -12,7 +12,7 @@ import androidx.appcompat.widget.AppCompatImageView
 import androidx.core.app.ActivityOptionsCompat
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView.NO_POSITION
-import com.facebook.drawee.view.SimpleDraweeView
+import com.bumptech.glide.Glide
 import com.firefly.viewutils.gone
 import com.firefly.viewutils.visible
 import gun0912.tedimagepicker.R
@@ -84,7 +84,7 @@ internal class MediaAdapter(
         private val multiSelectionFrame = view.findViewById<FrameLayout>(R.id.multi_selection_frame)
         private val selectedNumber = view.findViewById<TextView>(R.id.selected_number)
         private val duration = view.findViewById<TextView>(R.id.tv_duration)
-        private val ivImage = view.findViewById<SimpleDraweeView>(R.id.iv_image)
+        private val ivImage = view.findViewById<AppCompatImageView>(R.id.iv_image)
 
 
         init {
@@ -104,8 +104,9 @@ internal class MediaAdapter(
         }
 
         override fun bind(data: Media) {
-
-            ivImage.setImageURI(data.uri.toString())
+            Glide.with(itemView.context)
+                .load(data.uri)
+                .into(ivImage)
 
             if(selectedUriList.contains(data.uri)){
                 viewZoomOut.isClickable = false
@@ -141,7 +142,7 @@ internal class MediaAdapter(
                 return
             }
 
-            ivImage.setImageURI("")
+            ivImage.setImageDrawable(null)
         }
 
         private fun startZoomActivity(media: Media) {

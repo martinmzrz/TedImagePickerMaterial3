@@ -7,14 +7,15 @@ import android.os.Build
 import android.os.Bundle
 import android.provider.OpenableColumns
 import androidx.appcompat.app.AppCompatActivity
+import com.bumptech.glide.Glide
+import com.github.chrisbanes.photoview.PhotoView
 import com.google.android.material.appbar.MaterialToolbar
 import gun0912.tedimagepicker.R
-import me.relex.photodraweeview.PhotoDraweeView
 
 internal class TedImageZoomActivity : AppCompatActivity() {
     private lateinit var uri: Uri
 
-    private var ivMedia: PhotoDraweeView? = null
+    private var ivMedia: PhotoView? = null
     private var toolbar: MaterialToolbar? = null
 
 
@@ -27,8 +28,9 @@ internal class TedImageZoomActivity : AppCompatActivity() {
 
         toolbar?.setNavigationOnClickListener { finish() }
         toolbar?.title = getFileNameFromUri(uri)
-        ivMedia?.setPhotoUri(uri)
-
+        Glide.with(this)
+            .load(uri)
+            .into(ivMedia!!)
     }
 
     private fun setSavedInstanceState(savedInstanceState: Bundle?) {

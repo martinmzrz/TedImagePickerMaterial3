@@ -4,7 +4,8 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
-import com.facebook.drawee.view.SimpleDraweeView
+import androidx.appcompat.widget.AppCompatImageView
+import com.bumptech.glide.Glide
 import com.firefly.viewutils.gone
 import com.firefly.viewutils.visible
 import gun0912.tedimagepicker.R
@@ -35,13 +36,15 @@ internal class AlbumAdapter(private val builder: TedImagePickerBaseBuilder<*>) :
     }
 
     inner class AlbumViewHolder(view: View) : BaseViewHolder<Album>(view) {
-        private val ivImage: SimpleDraweeView = view.findViewById(R.id.iv_image)
+        private val ivImage: AppCompatImageView = view.findViewById(R.id.iv_image)
         private val selectedForeground: View = view.findViewById(R.id.selected_foreground)
         private val tvName: TextView = view.findViewById(R.id.tv_name)
         private val tvCount: TextView = view.findViewById(R.id.tv_count)
 
         override fun bind(data: Album) {
-            ivImage.setImageURI(data.thumbnailUri.toString())
+            Glide.with(itemView.context)
+                .load(data.thumbnailUri)
+                .into(ivImage)
 
             if(adapterPosition == selectedPosition){
                 selectedForeground.visible()
@@ -54,7 +57,7 @@ internal class AlbumAdapter(private val builder: TedImagePickerBaseBuilder<*>) :
         }
 
         override fun recycled() {
-            ivImage.setImageURI("")
+            ivImage.setImageDrawable(null)
         }
     }
 }

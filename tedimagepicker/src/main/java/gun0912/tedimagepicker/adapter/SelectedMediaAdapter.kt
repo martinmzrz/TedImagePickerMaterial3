@@ -8,7 +8,7 @@ import android.view.ViewGroup
 import androidx.appcompat.widget.AppCompatImageView
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.RecyclerView.NO_POSITION
-import com.facebook.drawee.view.SimpleDraweeView
+import com.bumptech.glide.Glide
 import gun0912.tedimagepicker.R
 import gun0912.tedimagepicker.base.BaseRecyclerViewAdapter
 import gun0912.tedimagepicker.base.BaseViewHolder
@@ -31,7 +31,7 @@ internal class SelectedMediaAdapter :
 
 
     inner class MediaViewHolder(view:View) : BaseViewHolder<Uri>(view) {
-        private val ivImage = view.findViewById<SimpleDraweeView>(R.id.iv_image)
+        private val ivImage = view.findViewById<AppCompatImageView>(R.id.iv_image)
         private val ivClear = view.findViewById<AppCompatImageView>(R.id.iv_clear)
 
         init {
@@ -43,14 +43,16 @@ internal class SelectedMediaAdapter :
         }
 
         override fun bind(data: Uri) {
-            ivImage.setImageURI(data.toString())
+            Glide.with(itemView.context)
+                .load(data)
+                .into(ivImage)
         }
 
         override fun recycled() {
             if ((itemView.context as? Activity)?.isDestroyed == true) {
                 return
             }
-            ivImage.setImageURI("")
+            ivImage.setImageDrawable(null)
         }
     }
 
